@@ -24,6 +24,7 @@
   "author": "Artur Arseniev",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@types/codemirror": "^5.60.8",
     "grapesjs": "^0.21.2",
     "grapesjs-cli": "^4.1.1"
   }

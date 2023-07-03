@@ -3,20 +3,14 @@ import { RequiredPluginOptions } from '..';
 import { cmdImport } from './../consts';
 import 'codemirror/addon/search/searchcursor.js';
 import 'codemirror/addon/search/search.js';
-import 'codemirror/addon/dialog/dialog.js';
 import 'codemirror/mode/htmlmixed/htmlmixed';
+import CodeMirror from 'codemirror';
 import { cssCode } from './styles';
-import CodeMirror, { TextMarker } from 'codemirror';
-//import { SearchCursor } from 'codemirror/addon/search/searchcursor';
-
 export default (editor: Editor, config: RequiredPluginOptions) => {
   // import css and bind the same
   const style = document.createElement('style');
-  style.id = 'codMirrorSearch';
   style.innerHTML = cssCode;
-  if (!document.getElementById('codMirrorSearch')) {
-    document.head.appendChild(style);
-  }
+  document.head.appendChild(style);
 
   const pfx = editor.getConfig('stylePrefix');
   const importLabel = config.modalImportLabel;
@@ -25,14 +19,10 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
   editor.Commands.add(cmdImport, {
     codeViewer: null as any,
     container: null as HTMLElement | null,
-    cursor: null as SearchCursor | null,
 
-    run(editor: Editor) {
+    run(editor) {
       const codeContent = typeof importCnt == 'function' ? importCnt(editor) : importCnt;
       const codeViewer = this.getCodeViewer();
-      const cursor = codeViewer.getSearchCursor('');
-      this.cursor = cursor;
-
       editor.Modal.open({
         title: config.modalImportTitle,
         content: this.getContainer(),
@@ -57,47 +47,16 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
         searchBar.placeholder = 'Search...';
         searchBar.addEventListener('input', () => {
           const searchValue = searchBar.value.trim();
-          const cursor = this.cursor;
+          const cursor = codeViewer.getSearchCursor(searchValue);
           codeViewer.operation(() => {
-            codeViewer.getAllMarks().forEach((mark: CodeMirror.TextMarker) => mark.clear());
-            while (cursor && cursor.findNext()) {
-              highlightMatch(codeViewer, cursor);
+            while (cursor.findNext()) {
+              // Highlight the search matches as needed
+              // For example:
+              codeViewer.markText(cursor.from(), cursor.to(), { className: 'CodeMirror-matchhighlight' });
             }
           });
         });
         container.appendChild(searchBar);
-
-        // Previous button
-        const prevButton = document.createElement('button');
-        prevButton.type = 'button';
-        prevButton.innerHTML = 'Previous';
-        prevButton.onclick = () => {
-          this.cursor?.findPrevious();
-          highlightMatch(codeViewer, this.cursor);
-        };
-        container.appendChild(prevButton);
-
-        // Next button
-        const nextButton = document.createElement('button');
-        nextButton.type = 'button';
-        nextButton.innerHTML = 'Next';
-        nextButton.onclick = () => {
-          this.cursor?.findNext();
-          highlightMatch(codeViewer, this.cursor);
-        };
-        container.appendChild(nextButton);
-
-        // Clear button
-        const clearButton = document.createElement('button');
-        clearButton.type = 'button';
-        clearButton.innerHTML = 'Clear';
-        clearButton.onclick = () => {
-          searchBar.value = '';
-          codeViewer.operation(() => {
-            codeViewer.getAllMarks().forEach((mark: CodeMirror.TextMarker) => mark.clear());
-          });
-        };
-        container.appendChild(clearButton);
 
         // Import Label
         if (importLabel) {
@@ -127,6 +86,10 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
       return this.container;
     },
 
+    /**
+     * Return the code viewer instance
+     * @returns {CodeMirror.Editor}
+     */
     getCodeViewer() {
       if (!this.codeViewer) {
         const codeViewer = CodeMirror(document.createElement('div'), {
@@ -140,25 +103,4 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
       return this.codeViewer;
     },
   });
-
 };
-
-function highlightMatch(codeViewer: CodeMirror.Editor, cursor: CodeMirror.SearchCursor) {
-  if (cursor && cursor.from() && cursor.to()) {
-    const from = cursor.from();
-    const to = cursor.to();
-    codeViewer.markText(from, to, { className: 'CodeMirror-matchhighlight' });
-    const line = codeViewer.getLineHandle(from.line);
-    codeViewer.addLineClass(line, 'wrap', 'CodeMirror-line-match');
-  }
-}
-
-
-
-function search(codeViewer: CodeMirror.Editor, regex: RegExp) {
-  const doc = codeViewer.getDoc();
-  let cursor = doc.getSearchCursor(regex);
-  while (cursor.findNext()) {
-    highlightMatch(codeViewer, cursor);
-  }
-}

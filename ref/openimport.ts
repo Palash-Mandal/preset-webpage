@@ -6,8 +6,7 @@ import 'codemirror/addon/search/search.js';
 import 'codemirror/addon/dialog/dialog.js';
 import 'codemirror/mode/htmlmixed/htmlmixed';
 import { cssCode } from './styles';
-import CodeMirror, { TextMarker } from 'codemirror';
-//import { SearchCursor } from 'codemirror/addon/search/searchcursor';
+import CodeMirror, { TextMarker, SearchCursor } from 'codemirror';
 
 export default (editor: Editor, config: RequiredPluginOptions) => {
   // import css and bind the same
@@ -16,7 +15,8 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
   style.innerHTML = cssCode;
   if (!document.getElementById('codMirrorSearch')) {
     document.head.appendChild(style);
-  }
+  };
+
 
   const pfx = editor.getConfig('stylePrefix');
   const importLabel = config.modalImportLabel;
@@ -27,7 +27,7 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
     container: null as HTMLElement | null,
     cursor: null as SearchCursor | null,
 
-    run(editor: Editor) {
+    run(editor) {
       const codeContent = typeof importCnt == 'function' ? importCnt(editor) : importCnt;
       const codeViewer = this.getCodeViewer();
       const cursor = codeViewer.getSearchCursor('');
@@ -59,11 +59,22 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
           const searchValue = searchBar.value.trim();
           const cursor = this.cursor;
           codeViewer.operation(() => {
-            codeViewer.getAllMarks().forEach((mark: CodeMirror.TextMarker) => mark.clear());
+            codeViewer.getAllMarks().forEach((mark: TextMarker) => mark.clear());
             while (cursor && cursor.findNext()) {
               highlightMatch(codeViewer, cursor);
             }
           });
+        });
+        searchBar.addEventListener('keydown', event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            this.cursor?.findNext();
+            highlightMatch(codeViewer, this.cursor);
+          }
+          if (event.key === 'Backspace') {
+            this.cursor?.findPrevious();
+            highlightMatch(codeViewer, this.cursor);
+          }
         });
         container.appendChild(searchBar);
 
@@ -94,7 +105,7 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
         clearButton.onclick = () => {
           searchBar.value = '';
           codeViewer.operation(() => {
-            codeViewer.getAllMarks().forEach((mark: CodeMirror.TextMarker) => mark.clear());
+            codeViewer.getAllMarks().forEach((mark: TextMarker) => mark.clear());
           });
         };
         container.appendChild(clearButton);
@@ -127,6 +138,10 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
       return this.container;
     },
 
+    /**
+     * Return the code viewer instance
+     * @returns {CodeMirror.Editor}
+     */
     getCodeViewer() {
       if (!this.codeViewer) {
         const codeViewer = CodeMirror(document.createElement('div'), {
@@ -140,25 +155,20 @@ export default (editor: Editor, config: RequiredPluginOptions) => {
       return this.codeViewer;
     },
   });
-
 };
 
-function highlightMatch(codeViewer: CodeMirror.Editor, cursor: CodeMirror.SearchCursor) {
+// function highlightMatch(codeViewer: CodeMirror.Editor, cursor: SearchCursor | null) {
+//   if (cursor) {
+//     const from = cursor.from();
+//     const to = cursor.to();
+//     codeViewer.markText(from, to, { className: 'CodeMirror-matchhighlight' });
+//   }
+// }
+
+function highlightMatch(codeViewer: CodeMirror.Editor, cursor: SearchCursor | null) {
   if (cursor && cursor.from() && cursor.to()) {
     const from = cursor.from();
     const to = cursor.to();
     codeViewer.markText(from, to, { className: 'CodeMirror-matchhighlight' });
-    const line = codeViewer.getLineHandle(from.line);
-    codeViewer.addLineClass(line, 'wrap', 'CodeMirror-line-match');
-  }
-}
-
-
-
-function search(codeViewer: CodeMirror.Editor, regex: RegExp) {
-  const doc = codeViewer.getDoc();
-  let cursor = doc.getSearchCursor(regex);
-  while (cursor.findNext()) {
-    highlightMatch(codeViewer, cursor);
   }
 }

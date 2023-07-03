@@ -5,7 +5,7 @@ export default (editor: Editor, opts: RequiredPluginOptions) => {
   const addBlock = (id: string, def: BlockProperties) => {
     opts.blocks.indexOf(id)! >= 0 && editor.Blocks.add(id, {
       select: true,
-      category: 'Basic',
+      category: 'Basic Block',
       ...def,
       ...opts.block(id),
     });
