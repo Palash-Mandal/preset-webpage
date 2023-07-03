@@ -10,10 +10,6 @@
     "build": "grapesjs-cli build",
     "start": "grapesjs-cli serve"
   },
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
   "keywords": [
     "grapesjs",
     "plugin",
